@@ -1,4 +1,3 @@
-
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
@@ -18,11 +17,14 @@ class DecisionTreeModel:
         return self.model.predict(X_test)
 
     def evaluate(self, y_true, y_pred):
-        accuracy = accuracy_score(y_true, y_pred)  
-        precision = precision_score(y_true, y_pred, average = "macro", zero_division = 0) 
-        recall = recall_score(y_true, y_pred, average = "macro", zero_division = 0) 
-        f1 = f1_score(y_true, y_pred, average = "macro", zero_division = 0)
-        confusion_matrix = confusion_matrix(y_true,y_pred)
 
-        return "Accuracy: " + accuracy + "\nPrecision: " + precision + "\nRecall: " + recall + "\nF1: " + f1 + "\nConfusion_matrix: " + confusion_matrix
+        metrics = {
+            "Accuracy": accuracy_score(y_true, y_pred),
+            "Precision": precision_score(y_true, y_pred, average="macro", zero_division=0),
+            "Recall": recall_score(y_true, y_pred, average="macro", zero_division=0),
+            "F1": f1_score(y_true, y_pred, average="macro", zero_division=0),
+            "Confusion_matrix": confusion_matrix(y_true, y_pred).tolist()
+        }
+
+        return metrics
 
