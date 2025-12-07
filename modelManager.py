@@ -21,9 +21,10 @@ class ModelManager:
     def set_test_ratio(self, ratio):
         if ratio <= 0 or ratio >= 1:
             print("Test ratio must be between 0 and 1.")
-
-        self.test_ratio = ratio
         return None
+
+    self.test_ratio = 1 - split_ratio
+
 
 
     def split(self, X, y):
@@ -87,4 +88,5 @@ class ModelManager:
                 results[name] = model.evaluate(y_test, y_pred)
 
         return results
+
 
