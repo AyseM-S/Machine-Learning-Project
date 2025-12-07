@@ -1,7 +1,7 @@
 from sklearn.model_selection import train_test_split
-import Perceptron.py
-import MLP.py
-import DecisionTree.py
+from perceptron import PerceptronModel
+from mlp import MLP_Model
+from decisionTree import DecisionTreeModel
 
 
 class ModelManager:
@@ -12,14 +12,18 @@ class ModelManager:
 
         # Adding models to dictionary
         self.available_models = {
-            "Perceptron": Perceptron,
-            "MLP": MLP,
-            "DecisionTree": DecisionTree
+            "Perceptron": PerceptronModel,
+            "MLP": MLP_Model,
+            "DecisionTree": DecisionTreeModel
         }
     
     # Changing test ratio
     def set_test_ratio(self, ratio):
+        if ratio <= 0 or ratio >= 1:
+            print("Test ratio must be between 0 and 1.")
+
         self.test_ratio = ratio
+        return None
 
 
     def split(self, X, y):
@@ -48,25 +52,25 @@ class ModelManager:
         # Splitting data 
         X_train, X_test, y_train, y_test = self.split(X, y)
 
-        # Modeli oluştur
+        # Creating the model
         ModelClass = self.available_models[selected_model_name]
         model = ModelClass()
 
-        # Eğit
+        # Training
         model.fit(X_train, y_train)
 
-        # Tahmin
+        # Predicition
         y_pred = model.predict(X_test)
 
-        # Değerlendir
+        # Evaluating
         results = model.evaluate(y_test, y_pred)
 
         return results
 
     def run_multiple(self, X, y, selected_models:list):
         """
-        Kullanıcı birden fazla modeli aynı anda seçerse
-        örnek: ["Perceptron", "DecisionTree"]
+        If the user select more than one model
+        Example: ["Perceptron", "DecisionTree"]
         """
 
         X_train, X_test, y_train, y_test = self.split(X, y)
