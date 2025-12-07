@@ -14,12 +14,13 @@ class PerceptronModel :
     def evaluate(self, y_true, y_pred):
 
         metrics = {
-            "Accuracy": accuracy_score(y_true, y_pred),
-            "Precision": precision_score(y_true, y_pred, average="macro", zero_division=0),
-            "Recall": recall_score(y_true, y_pred, average="macro", zero_division=0),
-            "F1": f1_score(y_true, y_pred, average="macro", zero_division=0),
-            "Confusion_matrix": confusion_matrix(y_true, y_pred).tolist()
+            "accuracy": accuracy_score(y_true, y_pred),
+            "precision": precision_score(y_true, y_pred, average="macro", zero_division=0),
+            "recall": recall_score(y_true, y_pred, average="macro", zero_division=0),
+            "f1_score": f1_score(y_true, y_pred, average="macro", zero_division=0),
+            "confusion_matrix": confusion_matrix(y_true, y_pred).tolist()
         }
 
         return metrics
+
 
