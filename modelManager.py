@@ -55,7 +55,18 @@ class ModelManager:
 
         # Creating the model
         ModelClass = self.available_models[selected_model_name]
+
+        if selected_model_name == "MLP":
+        if hidden_layers is None:
+            # There is not value from GUI -> default
+            model = ModelClass()
+        else:
+            # "128,64,32" → (128, 64, 32)
+            layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
+            model = ModelClass(hidden_layers=layer_tuple)
+    else:
         model = ModelClass()
+
 
         # Training
         model.fit(X_train, y_train)
@@ -88,5 +99,6 @@ class ModelManager:
                 results[name] = model.evaluate(y_test, y_pred)
 
         return results
+
 
 
