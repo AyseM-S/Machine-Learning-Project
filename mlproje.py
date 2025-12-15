@@ -34,7 +34,8 @@ class MLPipeline:
             self.data = None
             return False
 
-    def run_pipeline(self, model_name, normalize, ohe, split_ratio):
+    # --- MODIFIED: Added hidden_layers_str parameter ---
+    def run_pipeline(self, model_name, normalize, ohe, split_ratio, hidden_layers_str):
         """
         Runs the ML process with parameters from the GUI and returns the results.
         """
@@ -42,14 +43,18 @@ class MLPipeline:
             return None, "Please load data first."
         
         # --- 1. Preprocessing Simulation ---
-        # In a real application, you would apply StandardScaler/OneHotEncoder here based on 'normalize' and 'ohe'.
         preprocessing_info = f"Preprocessing: Normalize={normalize}, OHE={ohe}"
         print(preprocessing_info)
         
         # --- 2. Model Training and Evaluation Simulation ---
-        # In a real application, you would split X_train, X_test, y_train, y_test and train the model here.
         print(f"Training Model: {model_name} (Split Ratio: {split_ratio})")
         
+        # --- NEW LOGIC: Use hidden_layers_str for MLP ---
+        if model_name == "Multilayer Perceptron":
+            print(f"MLP Hidden Layers requested by user: {hidden_layers_str}")
+            # Your real ModelManager logic will handle conversion to tuple:
+            # layer_tuple = tuple(int(x.strip()) for x in hidden_layers_str.split(","))
+
         # Generating Simulated Metrics (Includes project metrics)
         metrics = {
             "model": model_name,
@@ -59,8 +64,7 @@ class MLPipeline:
             "f1_score": random.uniform(0.70, 0.95),
         }
         
-        # Simulated Confusion Matrix (3x3 - assuming Multi-class Classification)
-        # In your real code, this should be generated from y_true and y_pred.
+        # Simulated Confusion Matrix 
         cm_data = np.array([
             [random.randint(100, 200), random.randint(5, 20), random.randint(0, 5)],
             [random.randint(5, 20), random.randint(100, 200), random.randint(0, 5)],
@@ -78,7 +82,6 @@ class MLToolkitGUI:
         self.master = master
         master.title("GUI-Based Classification and Evaluation Tool")
         
-        # Set initial window size
         master.geometry("1000x700") 
         
         self.ml_pipeline = MLPipeline() # Instance of the Backend class
@@ -89,7 +92,10 @@ class MLToolkitGUI:
         self.ohe_var = tk.IntVar()
         self.model_selection_var = tk.StringVar(value="Perceptron") 
         self.split_ratio = tk.DoubleVar(value=0.7)
-        self.current_canvas = None # To clear the Matplotlib canvas
+        # --- NEW: Variable for Hidden Layers Input ---
+        self.hidden_layers_var = tk.StringVar(value="64, 32") 
+        
+        self.current_canvas = None 
         
         self.create_widgets()
 
@@ -120,12 +126,17 @@ class MLToolkitGUI:
         models = ["Perceptron", "Multilayer Perceptron", "Decision Tree"]
         for model in models:
             tk.Radiobutton(control_frame, text=model, variable=self.model_selection_var, value=model, anchor="w").pack(fill="x")
+            
+        # --- NEW: Hidden Layers Input for MLP ---
+        tk.Label(control_frame, text="(MLP Only) Hidden Layers (e.g., 128,64):", font=('Arial', 10, 'bold')).pack(pady=(10, 5))
+        tk.Entry(control_frame, textvariable=self.hidden_layers_var, width=30, justify=tk.CENTER).pack(fill="x", padx=10)
+        # --- END NEW WIDGETS ---
 
         # 4. Train/Test Split Slider
         tk.Label(control_frame, text="\n4. Train/Test Split Ratio:", font=('Arial', 10, 'bold')).pack(pady=(10, 5))
         tk.Scale(control_frame, from_=0.5, to=0.95, resolution=0.01, 
-                 orient=tk.HORIZONTAL, variable=self.split_ratio, 
-                 label="Train Ratio").pack(fill="x", padx=10)
+                  orient=tk.HORIZONTAL, variable=self.split_ratio, 
+                  label="Train Ratio").pack(fill="x", padx=10)
 
         # 5. Start Training Button
         tk.Button(control_frame, text="🔥 TRAIN MODELS 🔥", 
@@ -144,7 +155,7 @@ class MLToolkitGUI:
         
         # Initial message
         tk.Label(self.results_frame, text="Use the panel on the left to see training results.", 
-                 font=('Arial', 12, 'italic'), fg="gray").pack(expand=True)
+                  font=('Arial', 12, 'italic'), fg="gray").pack(expand=True)
 
     def load_dataset(self):
         """Allows the user to select a CSV file and loads it to the backend."""
@@ -155,13 +166,11 @@ class MLToolkitGUI:
         
         if file_path:
             if self.ml_pipeline.load_data(file_path):
-                # If successful, show the file name and number of rows
                 file_name = os.path.basename(file_path)
                 num_rows = len(self.ml_pipeline.data)
                 self.dataset_path.set(f"✅ Loaded: {file_name}\n({num_rows} rows)")
                 messagebox.showinfo("Success", f"Dataset loaded successfully:\n{file_name}")
             else:
-                # Show error message
                 self.dataset_path.set("❌ Loading Failed!")
                 messagebox.showerror("Error", "An issue occurred while loading data, or the file is empty/invalid.")
 
@@ -170,7 +179,6 @@ class MLToolkitGUI:
         for widget in self.results_frame.winfo_children():
             widget.destroy()
         
-        # Also clear the Matplotlib canvas if it exists
         if self.current_canvas:
             self.current_canvas.get_tk_widget().destroy()
             self.current_canvas = None
@@ -179,18 +187,15 @@ class MLToolkitGUI:
         """Displays metrics (Accuracy, Precision, Recall, F1-Score) in a table format."""
         
         tk.Label(self.results_frame, text=f"Selected Model: {metrics['model']}", 
-                 font=('Arial', 14, 'bold'), fg="#FF5722").pack(pady=(5, 10))
-                 
-        # Create a Treeview table to display metrics
+                  font=('Arial', 14, 'bold'), fg="#FF5722").pack(pady=(5, 10))
+                  
         table = ttk.Treeview(self.results_frame, columns=("Metric", "Score"), show="headings", height=4)
         table.heading("Metric", text="Evaluation Metric")
         table.heading("Score", text="Score")
         
-        # Adjust column widths
         table.column("Metric", width=200, anchor=tk.W)
         table.column("Score", width=150, anchor=tk.CENTER)
 
-        # Add data
         metric_labels = {
             "accuracy": "Accuracy", 
             "precision": "Precision", 
@@ -202,51 +207,42 @@ class MLToolkitGUI:
             score = f"{metrics[key]:.4f}" # Format to 4 decimal places
             table.insert("", tk.END, values=(label, score), tags=('oddrow' if list(metric_labels.keys()).index(key) % 2 else 'evenrow'))
         
-        # Configure row colors (for aesthetics)
         table.tag_configure('oddrow', background='#f0f0f0')
         table.tag_configure('evenrow', background='#ffffff')
 
         table.pack(pady=10, padx=5, fill="x")
         
-        # Description text
         tk.Label(self.results_frame, text="🔥 Confusion Matrix 🔥", 
-                 font=('Arial', 12, 'bold')).pack(pady=(15, 5))
+                  font=('Arial', 12, 'bold')).pack(pady=(15, 5))
 
 
     def display_confusion_matrix(self, cm_data):
         """Displays the Confusion Matrix graph using Matplotlib."""
         
-        # Create Matplotlib figure
         fig, ax = plt.subplots(figsize=(5, 5))
         
-        # Draw Heatmap [Image of Confusion Matrix Heatmap]
         cax = ax.matshow(cm_data, cmap=plt.cm.Blues)
         fig.colorbar(cax)
 
-        # Labels (In a real project, these should be class names)
         classes = ['Class 1', 'Class 2', 'Class 3']
         ax.set_xticks(np.arange(len(classes)))
         ax.set_yticks(np.arange(len(classes)))
         ax.set_xticklabels(classes)
         ax.set_yticklabels(classes)
 
-        # Add text to matrix cells
         for i in range(cm_data.shape[0]):
             for j in range(cm_data.shape[1]):
                 ax.text(j, i, str(cm_data[i, j]), va='center', ha='center', color='black')
 
-        # Title and axis labels
         ax.set_title("Confusion Matrix Simulation", y=1.05)
         ax.set_xlabel('Predicted Class')
         ax.set_ylabel('True Class')
         
-        plt.tight_layout() # Prevent layout overlap
+        plt.tight_layout() 
         
-        # Embed in Tkinter
         self.current_canvas = FigureCanvasTkAgg(fig, master=self.results_frame)
         self.current_canvas.draw()
         
-        # Pack the Canvas widget, allowing it to fill the frame
         canvas_widget = self.current_canvas.get_tk_widget()
         canvas_widget.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
@@ -258,6 +254,7 @@ class MLToolkitGUI:
         self.display_confusion_matrix(cm_data)
 
 
+    # --- MODIFIED: Retrieve hidden_layers_str and pass to run_pipeline ---
     def start_training(self):
         """Starts the training process, calls the backend, and displays results."""
         
@@ -270,28 +267,32 @@ class MLToolkitGUI:
         normalize = self.normalize_var.get()
         ohe = self.ohe_var.get()
         split_ratio = self.split_ratio.get()
+        hidden_layers_str = self.hidden_layers_var.get() # New: Get layers input
         
         # Notify the user that training has started
         self.clear_results()
         tk.Label(self.results_frame, text=f"Training '{model_name}' Model...", 
-                 font=('Arial', 16, 'bold'), fg="#007bff").pack(pady=50, fill="x")
+                  font=('Arial', 16, 'bold'), fg="#007bff").pack(pady=50, fill="x")
         
-        # Run the backend
-        metrics, cm_data = self.ml_pipeline.run_pipeline(model_name, normalize, ohe, split_ratio)
+        # Run the backend (passing the new parameter)
+        metrics, cm_data = self.ml_pipeline.run_pipeline(model_name, normalize, ohe, split_ratio, hidden_layers_str)
         
         if metrics:
-            # Display successful results
             self.display_results(metrics, cm_data)
             messagebox.showinfo("Success", f"Model training completed: {model_name}")
         else:
-            # Display error message if returned
             messagebox.showerror("Error", cm_data) 
             self.clear_results()
             tk.Label(self.results_frame, text="An error occurred during training.", 
-                     font=('Arial', 14), fg="red").pack(pady=50)
+                      font=('Arial', 14), fg="red").pack(pady=50)
 
 
 if __name__ == '__main__':
     root = tk.Tk()
     app = MLToolkitGUI(root)
     root.mainloop()
+
+# NOTE: The rest of the model definition classes (MLP_Model, ModelManager, etc.) 
+# from your original prompt remain unchanged, as they already contain the logic 
+# to parse the hidden layer string into a tuple:
+# layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
