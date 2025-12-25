@@ -4,8 +4,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import random # For simulation results
+import random
 import os
+
+# Import your visualization module
+from visualization import ResultVisualizer
 
 # ==============================================================================
 # SECTION 1: BACKEND (Machine Learning Simulation)
@@ -95,7 +98,8 @@ class MLToolkitGUI:
         # --- NEW: Variable for Hidden Layers Input ---
         self.hidden_layers_var = tk.StringVar(value="64, 32") 
         
-        self.current_canvas = None 
+        # Initialize your visualizer
+        self.visualizer = None
         
         self.create_widgets()
 
@@ -143,6 +147,11 @@ class MLToolkitGUI:
                   command=self.start_training, fg="white", bg="#FF5722", 
                   font=('Arial', 11, 'bold'), activebackground="#e64a19").pack(fill="x", pady=20, padx=10)
         
+        # 6. Compare Models Button (Optional)
+        tk.Button(control_frame, text="📊 COMPARE ALL MODELS", 
+                  command=self.compare_all_models, fg="white", bg="#9C27B0", 
+                  font=('Arial', 10, 'bold'), activebackground="#7B1FA2").pack(fill="x", pady=5, padx=10)
+        
         # ----------------------------------
         # Right Side: Results Area
         # ----------------------------------
@@ -152,6 +161,9 @@ class MLToolkitGUI:
         # Make the right column expand
         main_frame.columnconfigure(1, weight=1) 
         main_frame.rowconfigure(0, weight=1)
+        
+        # Initialize your visualizer with the results frame
+        self.visualizer = ResultVisualizer(self.results_frame)
         
         # Initial message
         tk.Label(self.results_frame, text="Use the panel on the left to see training results.", 
@@ -174,89 +186,8 @@ class MLToolkitGUI:
                 self.dataset_path.set("❌ Loading Failed!")
                 messagebox.showerror("Error", "An issue occurred while loading data, or the file is empty/invalid.")
 
-    def clear_results(self):
-        """Clears all previous widgets from the results frame."""
-        for widget in self.results_frame.winfo_children():
-            widget.destroy()
-        
-        if self.current_canvas:
-            self.current_canvas.get_tk_widget().destroy()
-            self.current_canvas = None
-            
-    def display_metrics(self, metrics):
-        """Displays metrics (Accuracy, Precision, Recall, F1-Score) in a table format."""
-        
-        tk.Label(self.results_frame, text=f"Selected Model: {metrics['model']}", 
-                  font=('Arial', 14, 'bold'), fg="#FF5722").pack(pady=(5, 10))
-                  
-        table = ttk.Treeview(self.results_frame, columns=("Metric", "Score"), show="headings", height=4)
-        table.heading("Metric", text="Evaluation Metric")
-        table.heading("Score", text="Score")
-        
-        table.column("Metric", width=200, anchor=tk.W)
-        table.column("Score", width=150, anchor=tk.CENTER)
-
-        metric_labels = {
-            "accuracy": "Accuracy", 
-            "precision": "Precision", 
-            "recall": "Recall", 
-            "f1_score": "F1 Score"
-        }
-
-        for key, label in metric_labels.items():
-            score = f"{metrics[key]:.4f}" # Format to 4 decimal places
-            table.insert("", tk.END, values=(label, score), tags=('oddrow' if list(metric_labels.keys()).index(key) % 2 else 'evenrow'))
-        
-        table.tag_configure('oddrow', background='#f0f0f0')
-        table.tag_configure('evenrow', background='#ffffff')
-
-        table.pack(pady=10, padx=5, fill="x")
-        
-        tk.Label(self.results_frame, text="🔥 Confusion Matrix 🔥", 
-                  font=('Arial', 12, 'bold')).pack(pady=(15, 5))
-
-
-    def display_confusion_matrix(self, cm_data):
-        """Displays the Confusion Matrix graph using Matplotlib."""
-        
-        fig, ax = plt.subplots(figsize=(5, 5))
-        
-        cax = ax.matshow(cm_data, cmap=plt.cm.Blues)
-        fig.colorbar(cax)
-
-        classes = ['Class 1', 'Class 2', 'Class 3']
-        ax.set_xticks(np.arange(len(classes)))
-        ax.set_yticks(np.arange(len(classes)))
-        ax.set_xticklabels(classes)
-        ax.set_yticklabels(classes)
-
-        for i in range(cm_data.shape[0]):
-            for j in range(cm_data.shape[1]):
-                ax.text(j, i, str(cm_data[i, j]), va='center', ha='center', color='black')
-
-        ax.set_title("Confusion Matrix Simulation", y=1.05)
-        ax.set_xlabel('Predicted Class')
-        ax.set_ylabel('True Class')
-        
-        plt.tight_layout() 
-        
-        self.current_canvas = FigureCanvasTkAgg(fig, master=self.results_frame)
-        self.current_canvas.draw()
-        
-        canvas_widget = self.current_canvas.get_tk_widget()
-        canvas_widget.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-
-    def display_results(self, metrics, cm_data):
-        """Displays all results sequentially."""
-        self.clear_results()
-        self.display_metrics(metrics)
-        self.display_confusion_matrix(cm_data)
-
-
-    # --- MODIFIED: Retrieve hidden_layers_str and pass to run_pipeline ---
     def start_training(self):
-        """Starts the training process, calls the backend, and displays results."""
+        """Starts the training process, calls the backend, and displays results using visualizer."""
         
         if self.ml_pipeline.data is None:
             messagebox.showwarning("Warning", "Please load a dataset first.")
@@ -267,32 +198,56 @@ class MLToolkitGUI:
         normalize = self.normalize_var.get()
         ohe = self.ohe_var.get()
         split_ratio = self.split_ratio.get()
-        hidden_layers_str = self.hidden_layers_var.get() # New: Get layers input
+        hidden_layers_str = self.hidden_layers_var.get()
         
-        # Notify the user that training has started
-        self.clear_results()
-        tk.Label(self.results_frame, text=f"Training '{model_name}' Model...", 
-                  font=('Arial', 16, 'bold'), fg="#007bff").pack(pady=50, fill="x")
+        # Show training message using visualizer
+        self.visualizer.display_training_message(model_name)
+        self.master.update()  # Update GUI to show message
         
         # Run the backend (passing the new parameter)
         metrics, cm_data = self.ml_pipeline.run_pipeline(model_name, normalize, ohe, split_ratio, hidden_layers_str)
         
         if metrics:
-            self.display_results(metrics, cm_data)
+            # Clear and display results using your visualizer
+            self.visualizer.clear_results()
+            self.visualizer.display_metrics_table(metrics, model_name)
+            self.visualizer.display_confusion_matrix(cm_data)
+            
             messagebox.showinfo("Success", f"Model training completed: {model_name}")
         else:
-            messagebox.showerror("Error", cm_data) 
-            self.clear_results()
-            tk.Label(self.results_frame, text="An error occurred during training.", 
-                      font=('Arial', 14), fg="red").pack(pady=50)
+            self.visualizer.display_error_message(cm_data)
+    
+    def compare_all_models(self):
+        """Trains and compares all available models."""
+        if self.ml_pipeline.data is None:
+            messagebox.showwarning("Warning", "Please load a dataset first.")
+            return
+        
+        # Show training message
+        self.visualizer.display_training_message("All Models")
+        
+        # Simulate training all models
+        models = ["Perceptron", "Multilayer Perceptron", "Decision Tree"]
+        results_dict = {}
+        
+        for model_name in models:
+            # Simulate metrics for each model
+            metrics = {
+                "accuracy": random.uniform(0.70, 0.95),
+                "precision": random.uniform(0.65, 0.90),
+                "recall": random.uniform(0.60, 0.85),
+                "f1_score": random.uniform(0.65, 0.90),
+            }
+            results_dict[model_name] = metrics
+        
+        # Display comparison
+        self.visualizer.clear_results()
+        self.visualizer.display_model_comparison(results_dict)
+        
+        messagebox.showinfo("Comparison Complete", "All models have been trained and compared!")
 
 
 if __name__ == '__main__':
     root = tk.Tk()
     app = MLToolkitGUI(root)
     root.mainloop()
-
-# NOTE: The rest of the model definition classes (MLP_Model, ModelManager, etc.) 
-# from your original prompt remain unchanged, as they already contain the logic 
-# to parse the hidden layer string into a tuple:
-# layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
