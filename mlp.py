@@ -28,9 +28,9 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 class MLP_Model:
 
-    def __init__(self, random_state=42):
+    def __init__(self, hidden_layers =(64,32),random_state=42):
         self.model = MLPClassifier(
-            hidden_layer_sizes=(64, 32),
+            hidden_layer_sizes= hidden_layers,
             activation='relu',
             solver='adam',
             max_iter=300,
@@ -54,5 +54,6 @@ class MLP_Model:
         }
 
         return metrics
+
 
 
