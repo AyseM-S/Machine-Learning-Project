@@ -22,8 +22,8 @@ class ModelManager:
         if ratio <= 0 or ratio >= 1:
             print("Test ratio must be between 0 and 1.")
         return None
+        self.test_ratio = 1 - split_ratio
 
-    self.test_ratio = 1 - split_ratio
 
 
 
@@ -64,8 +64,9 @@ class ModelManager:
                # "128,64,32" → (128, 64, 32)
                layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
                model = ModelClass(hidden_layers=layer_tuple)
-         else:
+        else:
             model = ModelClass()
+
 
 
         # Training
@@ -99,6 +100,7 @@ class ModelManager:
                 results[name] = model.evaluate(y_test, y_pred)
 
         return results
+
 
 
 
