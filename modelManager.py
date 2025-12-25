@@ -41,7 +41,7 @@ class ModelManager:
         return X_train, X_test, y_train, y_test
     
     # Selecting the model
-    def run(self, X, y, selected_model_name):
+    def run(self, X, y, selected_model_name, hidden_layers=None):
         """
         selected_model_name: "Perceptron" | "MLP" | "DecisionTree"
         """
@@ -57,15 +57,15 @@ class ModelManager:
         ModelClass = self.available_models[selected_model_name]
 
         if selected_model_name == "MLP":
-        if hidden_layers is None:
-            # There is not value from GUI -> default
+           if hidden_layers is None:
+               # There is not value from GUI -> default
+               model = ModelClass()
+           else:
+               # "128,64,32" → (128, 64, 32)
+               layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
+               model = ModelClass(hidden_layers=layer_tuple)
+         else:
             model = ModelClass()
-        else:
-            # "128,64,32" → (128, 64, 32)
-            layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
-            model = ModelClass(hidden_layers=layer_tuple)
-    else:
-        model = ModelClass()
 
 
         # Training
@@ -99,6 +99,7 @@ class ModelManager:
                 results[name] = model.evaluate(y_test, y_pred)
 
         return results
+
 
 
 
