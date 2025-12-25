@@ -56,21 +56,17 @@ class ModelManager:
         # Creating the model
         ModelClass = self.available_models[selected_model_name]
 
-        if selected_model_name == "MLP":
-           if hidden_layers is None:
-               # There is not value from GUI -> default
-               model = ModelClass()
-           else:
-               # "128,64,32" → (128, 64, 32)
-               try:
-                   layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
-                   model = ModelClass(hidden_layers=layer_tuple)
-               except ValueError:
-                   print("Invalid hidden layer format. Example: 128,64,32")
-                   return None
-
+        if selected_model_name  == "MLP" and hidden_layers is not None:
+            try:
+                # "128,64,32" → (128, 64, 32)
+                layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
+                model = ModelClass(hidden_layers=layer_tuple)
+            except ValueError:
+                print("Invalid hidden layer format for MLP. Example: 128,64,32")
+                return None
         else:
             model = ModelClass()
+
 
 
 
@@ -111,6 +107,8 @@ class ModelManager:
                 results[name] = model.evaluate(y_test, y_pred)
 
         return results
+
+
 
 
 
