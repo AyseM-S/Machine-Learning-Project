@@ -21,9 +21,9 @@ class ModelManager:
     def set_test_ratio(self, ratio):
         if ratio <= 0 or ratio >= 1:
             print("Test ratio must be between 0 and 1.")
-        return None
+            return
+        self.test_ratio = ratio
 
-    self.test_ratio = 1 - split_ratio
 
 
 
@@ -41,7 +41,7 @@ class ModelManager:
         return X_train, X_test, y_train, y_test
     
     # Selecting the model
-    def run(self, X, y, selected_model_name):
+    def run(self, X, y, selected_model_name, hidden_layers=None):
         """
         selected_model_name: "Perceptron" | "MLP" | "DecisionTree"
         """
@@ -56,16 +56,18 @@ class ModelManager:
         # Creating the model
         ModelClass = self.available_models[selected_model_name]
 
-        if selected_model_name == "MLP":
-        if hidden_layers is None:
-            # There is not value from GUI -> default
-            model = ModelClass()
+        if selected_model_name  == "MLP" and hidden_layers is not None:
+            try:
+                # "128,64,32" → (128, 64, 32)
+                layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
+                model = ModelClass(hidden_layers=layer_tuple)
+            except ValueError:
+                print("Invalid hidden layer format for MLP. Example: 128,64,32")
+                return None
         else:
-            # "128,64,32" → (128, 64, 32)
-            layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
-            model = ModelClass(hidden_layers=layer_tuple)
-    else:
-        model = ModelClass()
+            model = ModelClass()
+
+
 
 
         # Training
@@ -79,7 +81,7 @@ class ModelManager:
 
         return results
 
-    def run_multiple(self, X, y, selected_models:list):
+    def run_multiple(self, X, y, selected_models:list, hidden_layers=None):
         """
         If the user select more than one model
         Example: ["Perceptron", "DecisionTree"]
@@ -92,13 +94,26 @@ class ModelManager:
         for name in selected_models:
             if name in self.available_models:
                 ModelClass = self.available_models[name]
-                model = ModelClass()
+                
+                if name == "MLP" and hidden_layers is not None:
+                   layer_tuple = tuple(int(x.strip()) for x in hidden_layers.split(","))
+                   model = ModelClass(hidden_layers=layer_tuple)
+                else:
+                   model = ModelClass()
+
 
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_test)
                 results[name] = model.evaluate(y_test, y_pred)
 
         return results
+
+
+
+
+
+
+
 
 
 
